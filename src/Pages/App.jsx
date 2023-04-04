@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
-import './App.css'
+import { LineChart, Line, CartesianGrid, XAxis, YAxis } from 'recharts';
+import '../App.css'
+import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 const API_KEY = import.meta.env.VITE_APP_API_KEY;
 var city = "San Jose";
 var cityName = "";
@@ -9,10 +11,14 @@ var citySunset = "";
 var isDate = true;
 var isTime = true;
 var isTemp = true;
-
+var chart = [];
+var isRender = false;
+var number = 0;
 function App() {
   var [searchAnswer, setSearchAnswer] = useState("");
   const [data, setData] = useState([]);
+  const [temp, setTemp] = useState([]);
+  const [time, setTime] = useState([]);
   var categories = ["Date", "Time", "Temp"];
   useEffect(() => {
     const fetchData = async () => {
@@ -23,6 +29,17 @@ function App() {
       citySunrise = "" + data.data[0].sunrise;
       citySunset = "" + data.data[0].sunset;
       setData(data.minutely);
+      for (var i = 0; i < data.minutely.length; i++)
+      {
+        temp.push(((((parseInt(data.minutely[i].temp))* (9 / 5) + 32) * 10) / 10));
+        time.push(((parseInt(data.minutely[i].timestamp_local.substring(11, 13)) + 11) % 12 + 1) + "" + data.minutely[i].timestamp_local.substring(13, 16))
+      }
+      for (var i = 0; i < data.minutely.length; i++)
+      {
+        chart.push({t: time[i], te: temp[i]});
+      }
+      console.log(chart);
+      isRender = true;
     }
     fetchData().catch(console.error);
   }, []);
@@ -80,6 +97,11 @@ function App() {
     }
     return;
   };
+  const setNum = (index) =>
+  {
+    number = index;
+  }
+  const renderLineChart = ( <LineChart width={400} height={400} data={chart}><Line type="monotone" dataKey="te" stroke="#8884d8" /><XAxis dataKey="t" /><YAxis dataKey="te"/></LineChart>);
   return (
     <div className="App">
       <div className="Side Menu">
@@ -95,6 +117,7 @@ function App() {
         </div>
         <div className="boxThree">
           <input type="text" onChange={(e) => { answerSubmit(e) }} placeholder="Filter by Category..."></input>
+          {isRender && renderLineChart}
         </div>
       </div>
       <div className="mainBox">
@@ -103,6 +126,7 @@ function App() {
             <th>{isDate && <button onClick={(e) => {handleClick(e)}}>Date</button>}</th>
             <th>{isTime && <button onClick={handleClick}>Time</button>}</th>
             <th>{isTemp && <button onClick={handleClick}>Temp</button>}</th>
+            <th><p>Extra Details</p></th>
           </tr>
           <tr>
             <td>{isDate && data.map((locationData) => {
@@ -126,6 +150,14 @@ function App() {
                 </div>
               );
             })}</td>
+            <td>{data.map((locationData, index)=> {
+              return (
+                <div>
+                <Link to="/extraDetails" ><button className = "Button"onClick={setNum(locationData)}>...</button></Link>
+                </div>
+              )
+            })}
+            </td>
           </tr>
         </table>
       </div>
@@ -134,3 +166,4 @@ function App() {
 }
 
 export default App
+export {number};
